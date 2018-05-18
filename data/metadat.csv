@@ -1,0 +1,13 @@
+sample_name;cell_line;treatment
+Sample01;TC1A9;control
+Sample02;TC1A9;control
+Sample03;TC1A9;control
+Sample04;TC1A9;ifng
+Sample05;TC1A9;ifng
+Sample06;TC1A9;ifng
+Sample07;B16;control
+Sample08;B16;control
+Sample09;B16;control
+Sample10;B16;ifng
+Sample11;B16;ifng
+Sample12;B16;ifng
