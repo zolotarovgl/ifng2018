@@ -1,6 +1,11 @@
+#load packages
+library(dplyr)
+
+
+
+
+
 #------------STRING ANALYSIS---------
-
-
 #1.----Load DESeq2 results ----
 setwd("~/interferon_gamma/DESeq2_results")
 files = list.files(pattern = 'csv')
@@ -41,7 +46,7 @@ net = read.table('string_interactions.tsv',header = T)
 
 
 #----STRING analysis in R-----
-biocLite('STRINGdb')
+library(BiocInstaller)
 library(STRINGdb)
 data(diff_exp_example1)
 head(diff_exp_example1)
@@ -60,8 +65,8 @@ STRINGdb$help("get_pubmed_interaction")
 STRINGdb$help("get_png")
 int = string_db$get_interactions(example1_mapped[1:100,]$STRING_id)
 int = string_db$get_pubmed_interaction(example1_mapped[1:100,]$STRING_id)
-string_network = string_db$get_graph()
-string_db$get_png(example1_mapped[1:100,]$STRING_id)
+graph = string_db$get_graph()
+
 
 head(diff_exp_example1)
 example1_mapped <- string_db$map( diff_exp_example1, "gene", removeUnmappedRows = TRUE )
@@ -72,19 +77,10 @@ string_db$plot_network(example1_mapped$STRING_id[1:100])
 
 significant_genes = lapply(desseq2,FUN = function(result) result%>%filter(abs(log2FoldChange)>1&padj<=0.01)%>%arrange(padj)%>%dplyr::select(ensembl,entrez,symbol,log2FoldChange,padj) )
 
-b16 = significant_genes$B16%>%dplyr::select(padj,log2FoldChange,symbol)
-b16_mapped <- string_db$map( b16, "symbol", removeUnmappedRows = TRUE )
-hits <- b16_mapped$STRING_id[1:50]
-clustersList_b16 <- string_db$get_clusters(b16_mapped$STRING_id[1:600])
-# plot first 4 clusters
-par(mfrow=c(2,2))
-for(i in seq(1:4)){
-  string_db$plot_network(clustersList_b16[[i]])
-}
 
 ifng = significant_genes$IFNG%>%dplyr::select(padj,log2FoldChange,symbol)
 ifng_mapped <- string_db$map( ifng, "symbol", removeUnmappedRows = TRUE )
-hits <- ifng_mapped$STRING_id[1:50]
+ifng_mapped$STRING_id[1:50]
 clustersList_ifng <- string_db$get_clusters(ifng_mapped$STRING_id[1:600])
 # plot first 4 clusters
 par(mfrow=c(2,2))
@@ -92,17 +88,98 @@ for(i in seq(1:4)){
   string_db$plot_network(clustersList_ifng[[i]])
 }
 
-string_db$get_graph()
+
 library('devtools')
 
-#dowloading Mitools package:
-install_github("vitkl/MItools")
-library(MItools)
-??fullInteractome
+
 #1.network for ifng
 #2.cluster network
 #3.gene set enrichment analysis for clusters - which clusters are there?
 
+
+library(igraph)
+interactome = string_db$get_graph()
+
+
+
+#get subgraph from graph
+nodes = ifng_mapped$STRING_id[ifng_mapped$STRING_id%in%V(interactome)$name]
+ifng = induced.subgraph(graph = interactome,nodes)
+
+
+# Set layout options
+l <- layout.fruchterman.reingold(ifng)
+l<-layout_with_fr(ifng)
+l <- layout_in_circle(ifng)
+l <- layout_on_sphere(ifng)
+
+# Plot graph and subgraph
+plot.igraph(x=ifng,layout=l,vertex.label.cex = 1e-10,vertex.size = 5,edge.width=0.4)
+E(ifng)$combined_score
+E(ifng)$width = E(ifng)$combined_score*0.001
+plot(ifng)
+
+#clusterisation
+ceb <- cluster_edge_betweenness(ifng) 
+dendPlot(ceb, mode="hclust")
+plot(ceb, ifng,vertex.label.cex = 1e-10) 
+
+
+
+#cenrality measurements
+deg = degree(ifng, mode="in")
+names(sort(deg,decreasing = T)[3])
+length(unlist(sapply(names(deg),as.character)))
+
+match_genes = function(gene_id){
+  if(length(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol)>1){
+    return(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol[1])
+  }else{
+    return(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol)
+  }
+}
+symb = unlist(sapply(names(deg),match_genes))
+gene_deg = data.frame(symbol = symb, id = names(symb) ,deg = deg )
+gene_deg$logFC = ifng_mapped[match(gene_deg$symbol,ifng_mapped$symbol),3]
+gene_deg$padj = ifng_mapped[match(gene_deg$symbol,ifng_mapped$symbol),2]
+gene_deg = gene_deg%>%arrange(-deg)
+
+
+class(ifng)
+#closeness 
+closeness(ifng, mode="all", weights=NA) 
+centr_clo(net, mode="all", normalized=T) 
+
+?closeness
+
+#hubs and authorities
+hs <- hub_score(ifng, weights=NA)$vector
+as <- authority_score(ifng, weights=NA)$vector
+
+
+match_genes = function(gene_id){
+  if(length(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol)>1){
+    return(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol[1])
+  }else{
+    return(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol)
+  }
+}
+symb = unlist(sapply(names(hs),match_genes))
+gene_hs = data.frame(symbol = symb, id = names(symb) ,hs = hs )
+gene_hs =gene_hs%>%arrange(-hs)
+gene_hs$logFC = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),3]
+gene_hs$padj = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),2]
+
+gene_deg%>%filter(logFC<0)
+
+
+
+#Stat1 appears as a core element with hub score = 1 
+hist(deg)
+deg.dist <- degree_distribution(ifng, cumulative=T, mode="all")
+plot( x=0:max(deg), y=1-deg.dist, pch=19, cex=1.2, col="orange",xlab="Degree", ylab="Cumulative Frequency")
+
+mean_distance(ifng, directed=T)
 
 
 
