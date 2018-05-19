@@ -61,14 +61,15 @@ string_db <- STRINGdb$new( version="10", species=id,score_threshold=0, input_dir
 
 STRINGdb$help("add_diff_exp_color")
 STRINGdb$help("get_pubmed_interaction")
-"get_bioc_graph"
 STRINGdb$help("get_png")
+data(diff_exp_example1)
+
+
 int = string_db$get_interactions(example1_mapped[1:100,]$STRING_id)
 int = string_db$get_pubmed_interaction(example1_mapped[1:100,]$STRING_id)
 graph = string_db$get_graph()
 
 
-head(diff_exp_example1)
 example1_mapped <- string_db$map( diff_exp_example1, "gene", removeUnmappedRows = TRUE )
 hits <- example1_mapped$STRING_id[1:200]
 string_db$plot_network( hits )
@@ -80,8 +81,7 @@ significant_genes = lapply(desseq2,FUN = function(result) result%>%filter(abs(lo
 
 ifng = significant_genes$IFNG%>%dplyr::select(padj,log2FoldChange,symbol)
 ifng_mapped <- string_db$map( ifng, "symbol", removeUnmappedRows = TRUE )
-ifng_mapped$STRING_id[1:50]
-clustersList_ifng <- string_db$get_clusters(ifng_mapped$STRING_id[1:600])
+
 # plot first 4 clusters
 par(mfrow=c(2,2))
 for(i in seq(1:4)){
@@ -128,8 +128,6 @@ plot(ceb, ifng,vertex.label.cex = 1e-10)
 
 #cenrality measurements
 deg = degree(ifng, mode="in")
-names(sort(deg,decreasing = T)[3])
-length(unlist(sapply(names(deg),as.character)))
 
 match_genes = function(gene_id){
   if(length(ifng_mapped[ifng_mapped$STRING_id==gene_id,]$symbol)>1){
@@ -145,7 +143,7 @@ gene_deg$padj = ifng_mapped[match(gene_deg$symbol,ifng_mapped$symbol),2]
 gene_deg = gene_deg%>%arrange(-deg)
 
 
-class(ifng)
+
 #closeness 
 closeness(ifng, mode="all", weights=NA) 
 centr_clo(net, mode="all", normalized=T) 
@@ -170,7 +168,31 @@ gene_hs =gene_hs%>%arrange(-hs)
 gene_hs$logFC = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),3]
 gene_hs$padj = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),2]
 
-gene_deg%>%filter(logFC<0)
+
+#plot the neighborhood of selected proteins
+V(ifng)$name = gene_hs[match(V(ifng)$name,gene_hs$id),]$symbol
+ifng <- set.vertex.attribute(ifng, "label", value=gene_hs[match(V(ifng)$name,gene_hs$id),]$symbol)
+n1 = neighbors(ifng, V(ifng)$name[1], 1)
+plot(ifng[n],vertex.label.cex = 1e-10) 
+V(ifng)$name[n1]
+
+
+
+
+
+
+
+
+
+#Clusterisation
+
+nodes = ifng_mapped$STRING_id[ifng_mapped$STRING_id%in%V(interactome)$name]
+nodes[1:50]
+ifng = induced.subgraph(graph = interactome,nodes)
+
+
+ceb <- cluster_edge_betweenness(ifng)
+plot(ceb, ifng)
 
 
 
