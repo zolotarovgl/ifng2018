@@ -223,13 +223,3 @@ lapply(seq_along(gsea_reactome),FUN = function(i) write.csv(gsea_reactome[i],pas
 
 
 
-
-
-#data analysis and comparison
-
-#1. estimate
-
-
-
-
-

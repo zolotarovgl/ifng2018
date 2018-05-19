@@ -1,13 +1,15 @@
 #load packages
 library(dplyr)
-
+library(igraph)
+library(STRINGdb)
+library(BiocInstaller)
 
 
 
 
 #------------STRING ANALYSIS---------
 #1.----Load DESeq2 results ----
-setwd("~/interferon_gamma/DESeq2_results")
+setwd("~/ifng2018/DESeq2_results")
 files = list.files(pattern = 'csv')
 read.file = function(i){
   result = read.csv(files[i])
@@ -18,73 +20,31 @@ read.file = function(i){
 desseq2 = lapply(seq_along(files),FUN = read.file)
 names(desseq2) = sapply(files,function(x) unlist(strsplit(x,'_'))[1],USE.NAMES = F)
 
-#create a list with significant genes
-getwd()
-setwd("/Users/grygoriyzolotarov/interferon_gamma/")
-significant = function(result){
-  out = result%>%filter(abs(log2FoldChange)>1&padj<=0.01)%>%arrange(padj)%>%dplyr::select(ensembl)%>%pull()
-  out = out[!is.na(out)]
-  return(out)
-}
-significant_genes = lapply(desseq2,significant)
-
-
-
-
-#write significant files
-write = function(i){
-  writeLines(significant_genes[i],sep='\n',"outfile.txt")
-}
-lapply(seq_along(significant_genes),FUN = function(i) writeLines(paste0(significant_genes[[i]],'\n'), paste0(names(significant_genes)[i],'sign_genes.txt')))
-
-
-#read STRING output and convert to an igraph object
-setwd("/Users/grygoriyzolotarov/interferon_gamma/STRING")
-net = read.table('string_interactions.tsv',header = T)
-
 
 
 
 #----STRING analysis in R-----
-library(BiocInstaller)
-library(STRINGdb)
-data(diff_exp_example1)
-head(diff_exp_example1)
-example1_mapped <- string_db$map( diff_exp_example1, "gene", removeUnmappedRows = TRUE )
-
-species = get_STRING_species(version="10", species_name=NULL)
+species = get_STRING_species(version="10", species_name=NULL) #selecting species id for Mus musculus
 id = species[grepl('Mus musculus',species[,2]),]$species_id
 
 #load string database for Mus musculus:
 string_db <- STRINGdb$new( version="10", species=id,score_threshold=0, input_directory="" )
-
-
-STRINGdb$help("new")
-STRINGdb$help("new")
-STRINGdb$help("get_png")
-data(diff_exp_example1)
-
-
-
 significant_genes = lapply(desseq2,FUN = function(result) result%>%filter(abs(log2FoldChange)>1&padj<=0.01)%>%arrange(padj)%>%dplyr::select(ensembl,entrez,symbol,log2FoldChange,padj) )
 
 
 ifng = significant_genes$IFNG%>%dplyr::select(padj,log2FoldChange,symbol)
-ifng_mapped <- string_db$map( ifng, "symbol", removeUnmappedRows = TRUE )
+ifng_mapped <- string_db$map( ifng, "symbol", removeUnmappedRows = TRUE ) #map significant genes to STRING identifiers
 
 #1.network for ifng
 #2.cluster network
 #3.gene set enrichment analysis for clusters - which clusters are there?
 
 
-library(igraph)
-interactome = string_db$get_graph()
-edge.attributes(ifng)$coexpression
+interactome = string_db$get_graph()#convert STRING network into an igraph object
 
 
 #get subgraph from graph
 nodes = ifng_mapped$STRING_id[ifng_mapped$STRING_id%in%V(interactome)$name]
-nodes = nodes[1:100]
 ifng = induced.subgraph(graph = interactome,nodes)
 #delete vertices with no edges
 ifng = delete.vertices(ifng,degree(ifng)==0)
@@ -97,7 +57,6 @@ l <- layout_in_circle(ifng)
 
 # Plot graph and subgraph
 plot.igraph(x=ifng,layout=l,vertex.label.cex = 1e-10,vertex.size = 5,edge.width=E(ifng)$coexpression/max(E(ifng)$coexpression)*2)
-E(ifng)$combined_score
 E(ifng)$width = E(ifng)$combined_score*0.001
 
 cliques(net.sym) 
@@ -115,7 +74,7 @@ ceb <- cluster_edge_betweenness(ifng)
 dendPlot(ceb, mode="hclust")
 plot(ceb, ifng,vertex.label.cex = 1e-10) 
 
-?simplify
+
 
 #cenrality measurements
 deg = degree(ifng, mode="in")
@@ -157,12 +116,15 @@ gene_hs = data.frame(symbol = symb, id = names(symb) ,hs = hs )
 gene_hs =gene_hs%>%arrange(-hs)
 gene_hs$logFC = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),3]
 gene_hs$padj = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),2]
-tail(gene_deg,20)
+head(gene_hs)
 
 #plot the neighborhood of selected proteins
 V(ifng)$name = as.vector(gene_hs[match(V(ifng)$name,gene_hs$id),]$symbol)
-node = V(ifng)$name[230]
+node = gene_hs[465,]$symbol
 
+
+
+#plot node neighborhood
 nei = induced_subgraph(ifng, ego(ifng, 1, node)[[1]])
 l <- layout_on_sphere(nei)
 l <- layout_with_kk(nei)
@@ -171,6 +133,18 @@ E(nei)$width = E(nei)$coexpression/max(E(nei)$coexpression)*5
 plot(nei,layout = l)
 title(node)
 dev.off()
+
+
+
+
+
+
+#degree distribution for the network
+deg <- degree(interactome, mode="all")
+deg.dist <- degree_distribution(ifng, cumulative=F, mode="all")
+plot( x=0:max(deg), y=1-deg.dist, pch=19, cex=1.2, col="orange", xlab="Degree", ylab="Cumulative Frequency")
+?degree.distribution
+
 
 
 
