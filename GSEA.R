@@ -214,6 +214,7 @@ setwd("~/interferon_gamma/gsea")
 
 #GO
 lapply(seq_along(enrich_go),FUN = function(j) lapply(seq_along(enrich_go[[j]]),FUN = function(i) write.csv(enrich_go[[j]][i],paste0(names(enrich_go)[j],'_',names(enrich_go[[j]][i]),'_enrich_go.csv'),row.names = F)))
+lapply(seq_along(gsea_go),FUN = function(i) write.csv(gsea_go[i],paste0(names(gsea_go[i]),'gsea_go.csv'),row.names = F))
 #KEGG
 lapply(seq_along(enrich_kegg),FUN = function(i) write.csv(enrich_kegg[i],paste0(names(enrich_kegg[i]),'enrich_kegg.csv'),row.names = F))
 lapply(seq_along(gsea_kegg),FUN = function(i) write.csv(gsea_kegg[i],paste0(names(gsea_kegg[i]),'gsea_kegg.csv'),row.names = F))
