@@ -1,0 +1,7 @@
+TC1A9 information:
+mean of normalized counts for all samples
+log2 fold change (MLE): treatment_ifng_vs_control+cell_lineTC1A9.treatmentifng effect
+standard error: treatment_ifng_vs_control+cell_lineTC1A9.treatmentifng effect
+Wald statistic: treatment_ifng_vs_control+cell_lineTC1A9.treatmentifng effect
+Wald test p-value: treatment_ifng_vs_control+cell_lineTC1A9.treatmentifng effect
+BH adjusted p-values

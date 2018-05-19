@@ -1,12 +1,11 @@
 #Here the GSEA and GAGE are performed using GO,KEGG and Rectome gene sets
 rm(list=ls()) 
-library(ReactomePA)
-biocLite('reactome.db')
 library(BiocInstaller)
 #1.----Load packages----
 list.of.packages <- c("ggplot2",
                       'clusterProfiler',
                       'ReactomePA',
+                      'reactome.db',
                       'DOSE',
                       'bindrcpp',
                       'ggplotly',
@@ -85,6 +84,7 @@ compute_gsea_go = function(genes,ont = ont,pval = 0.05){
   }
   return(list)
 }
+
 #2.----Gene Enrichment and GSEA: clusterProfiler----
 #----Cluster Profiler ----
 #----GO enrichment----
@@ -120,7 +120,9 @@ for(i in 1:length(names(desseq2))){
   gsea_go[i] = compute_gsea_go(genes = genes, ont = ont)
   names(gsea_go)[i] = names(desseq2)[i]
 }
-names(gsea_go) = unlist(strsplit(names(desseq2),'_'))[seq(1,length(names(desseq2))*2,2)]
+names(gsea_go) = names(desseq2)
+gsea_go = lapply(gsea_go,function(list) setReadable(list,OrgDb        = org.Mm.eg.db))
+View(gsea_go$B16[,])
 #----KEGG enrichment----
 enrich_kegg = list()
 for(i in 1:length(names(desseq2))){
@@ -164,7 +166,10 @@ for(i in 1:length(names(desseq2))){
                          verbose      = T)
   names(gsea_kegg)[i] = names(desseq2)[i]
 }
-names(gsea_kegg) = unlist(strsplit(names(desseq2),'_'))[seq(1,length(names(desseq2))*2,2)]
+names(gsea_kegg) = names(desseq2)
+
+gsea_kegg = lapply(gsea_kegg,function(list) setReadable(list,OrgDb = org.Mm.eg.db))
+setReadable(gsea_kegg$B16,OrgDb = org.Mm.eg.db)
 #----Reactome enrichment----
 enrich_reactome = list()
 for(i in 1:length(names(desseq2))){
@@ -184,6 +189,7 @@ for(i in 1:length(names(desseq2))){
 }
 
 #----Reactome gsea----
+
 gsea_reactome = list()
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
@@ -201,20 +207,27 @@ for(i in 1:length(names(desseq2))){
                                   pAdjustMethod="BH", verbose=T)
   names(gsea_reactome)[i] = names(desseq2)[i]
 }
-names(gsea_reactome) = unlist(strsplit(names(desseq2),'_'))[seq(1,length(names(desseq2))*2,2)]
-
+names(gsea_reactome) = names(desseq2)
+gsea_reactome= lapply(gsea_reactome,function(list) setReadable(list,OrgDb = org.Mm.eg.db,keytype = 'auto'))
 #3.----Export Results----
 setwd("~/interferon_gamma/gsea")
 
 #GO
-lapply(seq_along(enrich_go),FUN = function(j) lapply(seq_along(enrich_go[[j]]),FUN = function(i) write.csv(enrich_go[[j]][i],paste0(names(enrich_go)[j],'_',names(enrich_go[[j]][i]),'_enrich_go.csv'))))
+lapply(seq_along(enrich_go),FUN = function(j) lapply(seq_along(enrich_go[[j]]),FUN = function(i) write.csv(enrich_go[[j]][i],paste0(names(enrich_go)[j],'_',names(enrich_go[[j]][i]),'_enrich_go.csv'),row.names = F)))
 #KEGG
-lapply(seq_along(enrich_kegg),FUN = function(i) write.csv(enrich_kegg[i],paste0(names(enrich_kegg[i]),'enrich_kegg.csv')))
-lapply(seq_along(gsea_kegg),FUN = function(i) write.csv(gsea_kegg[i],paste0(names(gsea_kegg[i]),'gsea_kegg.csv')))
+lapply(seq_along(enrich_kegg),FUN = function(i) write.csv(enrich_kegg[i],paste0(names(enrich_kegg[i]),'enrich_kegg.csv'),row.names = F))
+lapply(seq_along(gsea_kegg),FUN = function(i) write.csv(gsea_kegg[i],paste0(names(gsea_kegg[i]),'gsea_kegg.csv'),row.names = F))
 #Reactome
-lapply(seq_along(enrich_reactome),FUN = function(i) write.csv(enrich_reactome[i],paste0(names(enrich_reactome[i]),'enrich_reactome.csv')))
-lapply(seq_along(gsea_reactome),FUN = function(i) write.csv(gsea_reactome[i],paste0(names(gsea_reactome[i]),'gsea_reactome.csv')))
+lapply(seq_along(enrich_reactome),FUN = function(i) write.csv(enrich_reactome[i],paste0(names(enrich_reactome[i]),'enrich_reactome.csv'),row.names = F))
+lapply(seq_along(gsea_reactome),FUN = function(i) write.csv(gsea_reactome[i],paste0(names(gsea_reactome[i]),'gsea_reactome.csv'),row.names = F))
 
+
+
+
+
+#data analysis and comparison
+
+#1. estimate
 
 
 

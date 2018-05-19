@@ -59,21 +59,11 @@ id = species[grepl('Mus musculus',species[,2]),]$species_id
 string_db <- STRINGdb$new( version="10", species=id,score_threshold=0, input_directory="" )
 
 
-STRINGdb$help("add_diff_exp_color")
-STRINGdb$help("get_pubmed_interaction")
+STRINGdb$help("new")
+STRINGdb$help("new")
 STRINGdb$help("get_png")
 data(diff_exp_example1)
 
-
-int = string_db$get_interactions(example1_mapped[1:100,]$STRING_id)
-int = string_db$get_pubmed_interaction(example1_mapped[1:100,]$STRING_id)
-graph = string_db$get_graph()
-
-
-example1_mapped <- string_db$map( diff_exp_example1, "gene", removeUnmappedRows = TRUE )
-hits <- example1_mapped$STRING_id[1:200]
-string_db$plot_network( hits )
-string_db$plot_network(example1_mapped$STRING_id[1:100])
 
 
 significant_genes = lapply(desseq2,FUN = function(result) result%>%filter(abs(log2FoldChange)>1&padj<=0.01)%>%arrange(padj)%>%dplyr::select(ensembl,entrez,symbol,log2FoldChange,padj) )
@@ -82,16 +72,6 @@ significant_genes = lapply(desseq2,FUN = function(result) result%>%filter(abs(lo
 ifng = significant_genes$IFNG%>%dplyr::select(padj,log2FoldChange,symbol)
 ifng_mapped <- string_db$map( ifng, "symbol", removeUnmappedRows = TRUE )
 
-# plot first 4 clusters
-par(mfrow=c(2,2))
-for(i in seq(1:4)){
-  string_db$plot_network(clustersList_ifng[[i]])
-}
-
-
-library('devtools')
-
-
 #1.network for ifng
 #2.cluster network
 #3.gene set enrichment analysis for clusters - which clusters are there?
@@ -99,32 +79,43 @@ library('devtools')
 
 library(igraph)
 interactome = string_db$get_graph()
-
+edge.attributes(ifng)$coexpression
 
 
 #get subgraph from graph
 nodes = ifng_mapped$STRING_id[ifng_mapped$STRING_id%in%V(interactome)$name]
+nodes = nodes[1:100]
 ifng = induced.subgraph(graph = interactome,nodes)
-
+#delete vertices with no edges
+ifng = delete.vertices(ifng,degree(ifng)==0)
 
 # Set layout options
 l <- layout.fruchterman.reingold(ifng)
 l<-layout_with_fr(ifng)
 l <- layout_in_circle(ifng)
-l <- layout_on_sphere(ifng)
+l <- layout_in_circle(ifng)
 
 # Plot graph and subgraph
-plot.igraph(x=ifng,layout=l,vertex.label.cex = 1e-10,vertex.size = 5,edge.width=0.4)
+plot.igraph(x=ifng,layout=l,vertex.label.cex = 1e-10,vertex.size = 5,edge.width=E(ifng)$coexpression/max(E(ifng)$coexpression)*2)
 E(ifng)$combined_score
 E(ifng)$width = E(ifng)$combined_score*0.001
-plot(ifng)
+
+cliques(net.sym) 
+
+
+
+
+
+
+
+
 
 #clusterisation
 ceb <- cluster_edge_betweenness(ifng) 
 dendPlot(ceb, mode="hclust")
 plot(ceb, ifng,vertex.label.cex = 1e-10) 
 
-
+?simplify
 
 #cenrality measurements
 deg = degree(ifng, mode="in")
@@ -148,7 +139,6 @@ gene_deg = gene_deg%>%arrange(-deg)
 closeness(ifng, mode="all", weights=NA) 
 centr_clo(net, mode="all", normalized=T) 
 
-?closeness
 
 #hubs and authorities
 hs <- hub_score(ifng, weights=NA)$vector
@@ -167,14 +157,28 @@ gene_hs = data.frame(symbol = symb, id = names(symb) ,hs = hs )
 gene_hs =gene_hs%>%arrange(-hs)
 gene_hs$logFC = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),3]
 gene_hs$padj = ifng_mapped[match(gene_hs$symbol,ifng_mapped$symbol),2]
-
+tail(gene_deg,20)
 
 #plot the neighborhood of selected proteins
-V(ifng)$name = gene_hs[match(V(ifng)$name,gene_hs$id),]$symbol
-ifng <- set.vertex.attribute(ifng, "label", value=gene_hs[match(V(ifng)$name,gene_hs$id),]$symbol)
-n1 = neighbors(ifng, V(ifng)$name[1], 1)
-plot(ifng[n],vertex.label.cex = 1e-10) 
-V(ifng)$name[n1]
+V(ifng)$name = as.vector(gene_hs[match(V(ifng)$name,gene_hs$id),]$symbol)
+node = V(ifng)$name[230]
+
+nei = induced_subgraph(ifng, ego(ifng, 1, node)[[1]])
+l <- layout_on_sphere(nei)
+l <- layout_with_kk(nei)
+
+E(nei)$width = E(nei)$coexpression/max(E(nei)$coexpression)*5
+plot(nei,layout = l)
+title(node)
+dev.off()
+
+
+
+
+
+
+
+
 
 
 

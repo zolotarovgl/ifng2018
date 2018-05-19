@@ -1,0 +1,7 @@
+B16 information:
+mean of normalized counts for all samples
+log2 fold change (MLE): treatment ifng vs control
+standard error: treatment ifng vs control
+Wald statistic: treatment ifng vs control
+Wald test p-value: treatment ifng vs control
+BH adjusted p-values
