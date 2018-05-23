@@ -35,6 +35,10 @@ significant_genes = lapply(desseq2,FUN = function(result) result%>%filter(abs(lo
 ifng = significant_genes$IFNG%>%dplyr::select(padj,log2FoldChange,symbol)
 ifng_mapped <- string_db$map( ifng, "symbol", removeUnmappedRows = TRUE ) #map significant genes to STRING identifiers
 
+b16 = significant_genes$B16%>%dplyr::select(padj,log2FoldChange,symbol)
+b16_mapped <- string_db$map(b16, "symbol", removeUnmappedRows = TRUE ) #map significant genes to STRING identifiers
+
+
 #1.network for ifng
 #2.cluster network
 #3.gene set enrichment analysis for clusters - which clusters are there?
@@ -45,13 +49,21 @@ interactome = string_db$get_graph()#convert STRING network into an igraph object
 
 #get subgraph from graph
 nodes = ifng_mapped$STRING_id[ifng_mapped$STRING_id%in%V(interactome)$name]
+nodes = nodes[1:50]
 ifng = induced.subgraph(graph = interactome,nodes)
+
+nodes = b16_mapped$STRING_id[b16_mapped$STRING_id%in%V(interactome)$name]
+nodes = nodes[1:50]
+b16 = induced.subgraph(graph = interactome,nodes)
 #delete vertices with no edges
+b16 = delete.vertices(b16,degree(b16)==0)
+
+
 ifng = delete.vertices(ifng,degree(ifng)==0)
 
 # Set layout options
 l <- layout.fruchterman.reingold(ifng)
-l<-layout_with_fr(ifng)
+l<-layout_with_dh(ifng)
 l <- layout_in_circle(ifng)
 l <- layout_in_circle(ifng)
 
@@ -59,7 +71,14 @@ l <- layout_in_circle(ifng)
 plot.igraph(x=ifng,layout=l,vertex.label.cex = 1e-10,vertex.size = 5,edge.width=E(ifng)$coexpression/max(E(ifng)$coexpression)*2)
 E(ifng)$width = E(ifng)$combined_score*0.001
 
-cliques(net.sym) 
+
+
+
+l <- layout.fruchterman.reingold(b16)
+closeness(b16, mode="all", weights=NA) 
+deg()
+plot.igraph(x=b16,layout=l,vertex.label.cex = 1e-10,vertex.size = 5,edge.width=E(ifng)$coexpression/max(E(ifng)$coexpression)*2)
+
 
 
 
@@ -140,14 +159,33 @@ dev.off()
 
 
 #degree distribution for the network
-deg <- degree(interactome, mode="all")
-deg.dist <- degree_distribution(ifng, cumulative=F, mode="all")
+deg <- degree(ifng, mode="all")
+deg.dist <- degree_distribution(ifng, cumulative=T, mode="all")
 plot( x=0:max(deg), y=1-deg.dist, pch=19, cex=1.2, col="orange", xlab="Degree", ylab="Cumulative Frequency")
-?degree.distribution
 
 
 
+deg <- degree(b16, mode="all")
 
+deg.dist <- degree_distribution(b16, cumulative=T, mode="all")
+plot( x=0:max(deg), y=1-deg.dist, pch=19, cex=1.2, col="orange", xlab="Degree", ylab="Cumulative Frequency")
+
+
+hs <- hub_score(b16, weights=NA)$vector
+match_genes = function(gene_id){
+  if(length(b16_mapped[b16_mapped$STRING_id==gene_id,]$symbol)>1){
+    return(b16_mapped[b16_mapped$STRING_id==gene_id,]$symbol[1])
+  }else{
+    return(b16_mapped[b16_mapped$STRING_id==gene_id,]$symbol)
+  }
+}
+
+symb = unlist(sapply(names(hs),match_genes))
+gene_hs = data.frame(symbol = symb, id = names(symb) ,hs = hs )
+gene_hs =gene_hs%>%arrange(-hs)
+gene_hs$logFC = b16_mapped[match(gene_hs$symbol,b16_mapped$symbol),3]
+gene_hs$padj = b16_mapped[match(gene_hs$symbol,b16_mapped$symbol),2]
+gene_hs%>%arrange(-logFC)
 
 
 
