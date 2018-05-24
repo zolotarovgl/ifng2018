@@ -45,14 +45,17 @@ if(!all(metadat$sample_name == colnames(data))){
 ## Preparing input for DESeq2 analysis
 #----Differential expression analysis IFNG ----
 #Create two groups ignoring the cell line information
-dds <- DESeqDataSetFromMatrix(countData = data,
+dds.ifng <- DESeqDataSetFromMatrix(countData = data,
                               colData = metadat[,-2],
                               design = ~treatment)
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
-dds.ifng <- DESeq(dds)
+dds.ifng <- DESeq(dds) #running DESEq2 analysis
 IFNG.result <- results(dds.ifng, contrast=c("treatment",'ifng',"control"))
 IFNG.result = na.omit(IFNG.result) #omittnig NAs
+
+
+
 dds <- DESeqDataSetFromMatrix(countData = data,
                               colData = metadat,
                               design = ~cell_line+treatment+cell_line:treatment)
