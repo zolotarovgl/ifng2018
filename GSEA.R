@@ -12,13 +12,14 @@ list.of.packages <- c("ggplot2",
                       'dplyr',
                       'org.Mm.eg.db')
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages)
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
 if(length(new.packages)) biocLite(new.packages)
 lapply(list.of.packages, require, character.only = TRUE)
 rm(list = c('list.of.packages','new.packages'))
 
 #1.----Load DESeq2 results ----
-setwd("~/interferon_gamma/DESeq2_results")
+#setwd("~/interferon_gamma/DESeq2_results")
+setwd("DESeq2_results")
 files = list.files(pattern = 'csv')
 read.file = function(i){
   result = read.csv(files[i])
@@ -122,7 +123,6 @@ for(i in 1:length(names(desseq2))){
 }
 names(gsea_go) = names(desseq2)
 gsea_go = lapply(gsea_go,function(list) setReadable(list,OrgDb        = org.Mm.eg.db))
-View(gsea_go$B16[,])
 #----KEGG enrichment----
 enrich_kegg = list()
 for(i in 1:length(names(desseq2))){

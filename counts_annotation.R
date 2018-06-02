@@ -1,5 +1,4 @@
 #Install and load packages
-library('rstudioapi') 
 library('dplyr')
 #1.----Loading packages -----
 rm(list=ls())
@@ -13,11 +12,8 @@ if(length(new.packages)) install.packages(new.packages)
 if(length(new.packages)) biocLite(new.packages)
 lapply(list.of.packages, require, character.only = TRUE)
 
-
 #2.----Data import -----
 ## read counts
-current_path <- getActiveDocumentContext()$path 
-setwd(dirname(current_path ))
 setwd('data')
 files.list<- list.files(pattern = 'Sample') #importing list of files
 
@@ -48,9 +44,9 @@ if(!all(metadat$sample_name == colnames(data))){
 dds.ifng <- DESeqDataSetFromMatrix(countData = data,
                               colData = metadat[,-2],
                               design = ~treatment)
-keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
-dds.ifng <- DESeq(dds) #running DESEq2 analysis
+keep <- rowSums(counts(dds.ifng)) >= 10
+dds.ifng <- dds.ifng[keep,]
+dds.ifng <- DESeq(dds.ifng) #running DESEq2 analysis
 IFNG.result <- results(dds.ifng, contrast=c("treatment",'ifng',"control"))
 IFNG.result = na.omit(IFNG.result) #omittnig NAs
 
