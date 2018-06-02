@@ -2,13 +2,13 @@
 rm(list=ls()) 
 library(BiocInstaller)
 #1.----Load packages----
+message('loading packages')
 list.of.packages <- c("ggplot2",
                       'clusterProfiler',
                       'ReactomePA',
                       'reactome.db',
                       'DOSE',
                       'bindrcpp',
-                      'ggplotly',
                       'dplyr',
                       'org.Mm.eg.db')
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -18,8 +18,11 @@ lapply(list.of.packages, require, character.only = TRUE)
 rm(list = c('list.of.packages','new.packages'))
 
 #1.----Load DESeq2 results ----
+message('loading results')
 #setwd("~/interferon_gamma/DESeq2_results")
 setwd("DESeq2_results")
+
+
 files = list.files(pattern = 'csv')
 read.file = function(i){
   result = read.csv(files[i])
@@ -89,6 +92,7 @@ compute_gsea_go = function(genes,ont = ont,pval = 0.05){
 #2.----Gene Enrichment and GSEA: clusterProfiler----
 #----Cluster Profiler ----
 #----GO enrichment----
+message('go enrichment')
 enrich_go = list()
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
@@ -106,6 +110,7 @@ for(i in 1:length(names(desseq2))){
 }
 names(enrich_go) = unlist(strsplit(names(enrich_go),'_'))[seq(1,length(names(enrich_go))*2,2)]
 #----GO gsea----
+message('go gsea')
 gsea_go = list()
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
@@ -124,6 +129,7 @@ for(i in 1:length(names(desseq2))){
 names(gsea_go) = names(desseq2)
 gsea_go = lapply(gsea_go,function(list) setReadable(list,OrgDb        = org.Mm.eg.db))
 #----KEGG enrichment----
+message('kegg enrichment')
 enrich_kegg = list()
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
@@ -145,7 +151,9 @@ for(i in 1:length(names(desseq2))){
 }
 names(enrich_kegg) = unlist(strsplit(names(desseq2),'_'))[seq(1,length(names(desseq2))*2,2)]
 #----KEGG gsea----
+message('kegg gsea')
 gsea_kegg = list()
+desseq2$TC1A9
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
   #list of signifint genes and ata
@@ -168,9 +176,10 @@ for(i in 1:length(names(desseq2))){
 }
 names(gsea_kegg) = names(desseq2)
 
-gsea_kegg = lapply(gsea_kegg,function(list) setReadable(list,OrgDb = org.Mm.eg.db))
+gsea_kegg = lapply(gsea_kegg,function(list) setReadable(list,OrgDb = org.Mm.eg.db,keytype = 'ENTREZID'))
 setReadable(gsea_kegg$B16,OrgDb = org.Mm.eg.db)
 #----Reactome enrichment----
+message('reactome enrichment')
 enrich_reactome = list()
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
@@ -189,7 +198,7 @@ for(i in 1:length(names(desseq2))){
 }
 
 #----Reactome gsea----
-
+message('reactome gsea')
 gsea_reactome = list()
 for(i in 1:length(names(desseq2))){
   print(names(desseq2)[i])
@@ -210,7 +219,22 @@ for(i in 1:length(names(desseq2))){
 names(gsea_reactome) = names(desseq2)
 gsea_reactome= lapply(gsea_reactome,function(list) setReadable(list,OrgDb = org.Mm.eg.db,keytype = 'auto'))
 #3.----Export Results----
-setwd("~/interferon_gamma/gsea")
+message('exporting results')
+
+setwd('..')
+dir.create('gsea')
+setwd('gsea')
+
+setwd("../")
+if (file.exists('gsea')){
+  setwd('gsea')
+  message('gsea directory already exists, settig wd...')
+}else{
+  dir.create('gsea')
+  message('creating gsea directory, settig wd...')
+  setwd('gsea')
+}
+
 
 #GO
 lapply(seq_along(enrich_go),FUN = function(j) lapply(seq_along(enrich_go[[j]]),FUN = function(i) write.csv(enrich_go[[j]][i],paste0(names(enrich_go)[j],'_',names(enrich_go[[j]][i]),'_enrich_go.csv'),row.names = F)))

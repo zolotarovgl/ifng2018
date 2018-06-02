@@ -4,6 +4,7 @@ library('dplyr')
 rm(list=ls())
 list.of.packages <- c('DESeq2',
                       'BiocInstaller',
+                      'ReportingTools',
                       'rstudioapi',
                       "AnnotationDbi",
                       "org.Mm.eg.db")
@@ -132,3 +133,4 @@ for(i in 1:length(results)){
 }
 #exporting results info
 writeLines(c(paste0('Created:'),capture.output(Sys.time()),capture.output(sessionInfo())), "sessionInfo.txt")
+
