@@ -4,8 +4,8 @@ library('dplyr')
 rm(list=ls())
 list.of.packages <- c('DESeq2',
                       'BiocInstaller',
-                      'ReportingTools',
                       'rstudioapi',
+                      'dplyr',
                       "AnnotationDbi",
                       "org.Mm.eg.db")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]

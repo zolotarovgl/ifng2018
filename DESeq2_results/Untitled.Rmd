@@ -1,0 +1,40 @@
+---
+title: "deseq2_analysis"
+output: html_document
+author: Grygoriy Zolotarov
+---
+
+```{r setup, include=FALSE}
+ source('counts_annotation.R')
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+list.of.packages <- c('DESeq2',
+                      'BiocInstaller',
+                      'rstudioapi',
+                      'dplyr',
+                      "AnnotationDbi",
+                      "org.Mm.eg.db")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+if(length(new.packages)) biocLite(new.packages)
+lapply(list.of.packages, require, character.only = TRUE)
+```
+
+####Differential expression analysis
+
+
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
